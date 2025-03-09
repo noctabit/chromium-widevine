@@ -18,7 +18,8 @@ fi
 # 3. COMPROBAR LA EXISTENCIA DEL DIRECTORIO DE CONFIGURACIÓN
 CONFIG_DIR="$HOME/.config/chromium"
 if [ ! -d "$CONFIG_DIR" ]; then
-    >&2 echo "Advertencia: No se encontró el directorio de configuración: $CONFIG_DIR"
+    >&2 echo "Error: No se encontró el directorio de configuración: $CONFIG_DIR"
+    exit 1
 fi
 
 # 4. IMPRIMIR LA RUTA DE LA BIBLIOTECA
