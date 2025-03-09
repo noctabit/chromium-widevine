@@ -3,10 +3,10 @@
 ########################################
 # Sección 1: Encontrar el directorio de Chromium
 ########################################
-# Ejecuta el script find-chromium.sh para determinar la ruta de Chromium.
-CHROMIUM_DIR="$(/bin/sh ./find-chromium.sh)"
+# Ejecuta el script find-ungoogled-chromium.sh para determinar la ruta de Ungoogled Chromium.
+CHROMIUM_DIR="$(/bin/sh ./find-ungoogled-chromium.sh)"
 if [ -z "$CHROMIUM_DIR" ]; then
-    # Si no se encuentra Chromium, termina el script con un error.
+    # Si no se encuentra Ungoogled Chromium, termina el script con un error.
     exit 1
 fi
 
@@ -25,18 +25,21 @@ fi
 ########################################
 # Sección 3: Extraer y organizar Widevine en el directorio de Chromium
 ########################################
-# Extraer Widevine y recrear esta estructura de directorio bajo el directorio de Chromium:
+# Extraer Widevine y recrear esta estructura de directorio bajo el directorio de Ungoogled Chromium:
 #	  /usr/lib/chromium/WidevineCdm
 #	  ├── LICENSE
 #	  ├── manifest.json
 #	  └── _platform_specific
 #		  └── linux_x64
 
+# Elimina recursivamente la carpeta WidevineCdm actual si existe
+sudo rm -rf "$CHROMIUM_DIR/WidevineCdm"
+
 # Crea el directorio destino con los permisos necesarios.
 sudo mkdir -p "$CHROMIUM_DIR/WidevineCdm/_platform_specific/linux_x64"
 
-# Extrae LICENSE.txt y lo coloca como LICENSE en el directorio de destino.
-unzip -p widevine.zip LICENSE.txt | sudo dd status=none of="${CHROMIUM_DIR}/WidevineCdm/LICENSE"
+# Extrae LICENSE.txt y lo coloca en el directorio de destino.
+unzip -p widevine.zip LICENSE.txt | sudo dd status=none of="${CHROMIUM_DIR}/WidevineCdm/LICENSE.txt"
 
 # Extrae manifest.json y lo coloca en el directorio de destino.
 unzip -p widevine.zip manifest.json | sudo dd status=none of="${CHROMIUM_DIR}/WidevineCdm/manifest.json"
