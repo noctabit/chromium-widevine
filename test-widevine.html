@@ -1,79 +1,129 @@
 <!doctype html>
 <html>
-	<body>
-		<ul id="root"></ul>
-		<script>
-const CONFIG = {
-	"initDataTypes": ["cenc"]
-};
+  <head>
+    <meta charset="utf-8">
+    <title>Test de Widevine en ungoogled-chromium - Pruebas de codecs</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 20px; }
+      li { margin-bottom: 0.5em; }
+      .success { color: green; }
+      .error { color: red; }
+    </style>
+  </head>
+  <body>
+    <!-- 1. ESTRUCTURA HTML -->
+    <ul id="root"></ul>
+    
+    <!-- 2. SCRIPT DE CONFIGURACIÓN Y FUNCIONES -->
+    <script>
+      'use strict';
 
-const VIDEO_CAPABILITIES = [
-	"video/mp4;codecs=\"avc1.42c00d\"",
-	"video/mp4;codecs=\"ec-3\"",
-	"video/webm;codecs=\"vorbis,vp8\"",
-	"video/mp2t;codecs=\"avc1.42E01E,mp4a.40.2\""
-];
+      // 2.1. CONFIGURACIÓN INICIAL
+      const CONFIG = {
+        initDataTypes: ["cenc"]
+      };
 
-const AUDIO_CAPABILITIES = [
-     "audio/mp4;codecs=\"mp4a.40.2\""
-];
+      // 2.2. ARRAYS DE CAPACIDADES
 
-const ROOT = document.getElementById("root");
+      // 2.2.1. PRUEBAS DE VIDEO (sin audio)
+      const VIDEO_ONLY_CAPABILITIES = [
+        { codec: 'video/mp4;codecs="avc1.42c00d"', label: 'H.264 Baseline (video)' },
+        { codec: 'video/webm;codecs="vp8"', label: 'VP8 (video)' },
+        { codec: 'video/mp4;codecs="av01.0.05M.08"', label: 'AV1 (video)' },
+        { codec: 'video/mp4;codecs="hev1"', label: 'HEVC (video)' }
+        // { codec: 'video/webm;codecs="vp9"', label: 'VP9 (video)' } // Opcional: VP9
+      ];
 
-function report(msg) {
-	const el = document.createElement("li");
-	el.innerText = msg;
-	ROOT.prepend(el);
-}
+      // 2.2.2. PRUEBAS DE AUDIO (sin video)
+      const AUDIO_ONLY_CAPABILITIES = [
+        { codec: 'audio/mp4;codecs="mp4a.40.2"', label: 'AAC (audio)' },
+        { codec: 'audio/webm;codecs="opus"', label: 'Opus (audio)' },
+        { codec: 'audio/flac', label: 'FLAC (audio)' }
+      ];
 
-async function check_feature(opts, feature) {
-	let cfg = Object.assign({}, CONFIG);
-	if (opts != null) {
-		Object.assign(cfg, opts);
-	}
-	try {
-		const widevine_test = await navigator.requestMediaKeySystemAccess("com.widevine.alpha", [ cfg ]);
-		console.log(widevine_test);
-		report(`[✓] ${feature} supported!`);
-		return true;
-	} catch (e) {
-		console.error(e);
-		report(`[✗] ${feature} not supported`);
-	}
-	return false;
-}
+      // 2.2.3. PRUEBAS COMBINADAS (video + audio)
+      // Se incluyen combinaciones actuales y algunas adicionales comunes en streaming.
+      const COMBINED_CAPABILITIES = [
+        { codec: 'video/mp2t;codecs="avc1.42E01E,mp4a.40.2"', label: 'H.264 + AAC en MPEG-2 TS' },
+        { codec: 'video/mp4;codecs="avc1.42c00d,mp4a.40.2"', label: 'H.264 + AAC en MP4' },
+        { codec: 'video/webm;codecs="vorbis,vp8"', label: 'VP8 + Vorbis en WebM' },
+        { codec: 'video/mp4;codecs="avc1.42c00d,ac-3"', label: 'H.264 + Dolby Digital (AC-3) en MP4' },
+        { codec: 'video/mp4;codecs="hev1,ec-3"', label: 'HEVC + Dolby Digital Plus (EC-3) en MP4' },
+        { codec: 'video/webm;codecs="vp9,opus"', label: 'VP9 + Opus en WebM' }
+      ];
 
-(async function() {
-	let any_detected = false;
-	for (const video_capability of VIDEO_CAPABILITIES) {
-		const r = await check_feature(
-			{
-				"videoCapabilities": [
-					{ "contentType": video_capability }
-				]
-			},
-			`video codec ${video_capability}`
-		);
-		any_detected = any_detected || r;
-	}
-	for (const audio_capability of AUDIO_CAPABILITIES) {
-		const r = await check_feature(
-			{
-				"audioCapabilities": [
-					{ "contentType": audio_capability }
-				]
-			},
-			`audio codec ${audio_capability}`
-		);
-		any_detected = any_detected || r;
-	}
-	if (!any_detected) {
-		report(`[✗] Widevine not found`);
-	} else {
-		report(`[✓] Widevine found!`);
-	}
-})();
-		</script>
-	</body>
+      // 2.3. ELEMENTO PARA MOSTRAR RESULTADOS
+      const rootEl = document.getElementById('root');
+
+      // 2.4. FUNCIÓN PARA REPORTAR RESULTADOS
+      const report = (msg, isError = false) => {
+        const li = document.createElement('li');
+        li.textContent = msg;
+        li.className = isError ? 'error' : 'success';
+        rootEl.prepend(li);
+      };
+
+      // 3. FUNCIÓN AUXILIAR PARA VERIFICAR CAPACIDADES
+      /**
+       * Verifica si se soporta una característica (video, audio o combinado) mediante Widevine.
+       * @param {Object} opts - Opciones específicas (videoCapabilities y/o audioCapabilities).
+       * @param {string} feature - Descripción de la característica.
+       * @returns {Promise<boolean>} - true si es soportada, false en caso de error.
+       */
+      const checkFeature = async (opts, feature) => {
+        const cfg = { ...CONFIG, ...opts };
+        try {
+          const keySystemAccess = await navigator.requestMediaKeySystemAccess('com.widevine.alpha', [cfg]);
+          console.log('Acceso obtenido para', feature, keySystemAccess);
+          report(`[✓] ${feature} soportado`);
+          return true;
+        } catch (e) {
+          console.error(`Error comprobando ${feature}:`, e);
+          report(`[✗] ${feature} no soportado`, true);
+          return false;
+        }
+      };
+
+      // 4. EJECUCIÓN PRINCIPAL DE LAS PRUEBAS
+      if (typeof navigator.requestMediaKeySystemAccess !== 'function') {
+        report('La API requestMediaKeySystemAccess no es soportada en este navegador.', true);
+      } else {
+        (async () => {
+          let anyDetected = false;
+
+          // 4.1. PRUEBAS DE VIDEO (SÓLO VIDEO)
+          for (const videoCap of VIDEO_ONLY_CAPABILITIES) {
+            const msg = `Video: ${videoCap.label} [${videoCap.codec}]`;
+            const result = await checkFeature({ videoCapabilities: [{ contentType: videoCap.codec }] }, msg);
+            anyDetected = anyDetected || result;
+          }
+
+          // 4.2. PRUEBAS DE AUDIO (SÓLO AUDIO)
+          for (const audioCap of AUDIO_ONLY_CAPABILITIES) {
+            const msg = `Audio: ${audioCap.label} [${audioCap.codec}]`;
+            const result = await checkFeature({ audioCapabilities: [{ contentType: audioCap.codec }] }, msg);
+            anyDetected = anyDetected || result;
+          }
+
+          // 4.3. PRUEBAS COMBINADAS (VIDEO + AUDIO)
+          for (const comboCap of COMBINED_CAPABILITIES) {
+            const msg = `Combinado: ${comboCap.label} [${comboCap.codec}]`;
+            // Se asume que el contenido combinado contiene tanto video como audio
+            // Se pasa el codec completo en videoCapabilities, ya que es un contenedor multiplexado.
+            const result = await checkFeature({ videoCapabilities: [{ contentType: comboCap.codec }] }, msg);
+            anyDetected = anyDetected || result;
+          }
+
+          // 4.4. INFORME FINAL
+          if (anyDetected) {
+            report('[✓] Widevine y codecs compatibles detectados y funcionando');
+          } else {
+            report('[✗] Widevine no encontrado o ningún codec soportado', true);
+          }
+        })();
+      }
+    </script>
+  </body>
 </html>
+
 
